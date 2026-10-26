@@ -2,7 +2,7 @@
 
 🔗 **Live Demo:** [kulbaba.vercel.app](https://kulbaba.vercel.app/)
 
-<!-- <img width="900" height="907" alt="Kulbaba" src="docs/preview.png" /> -->
+ <img width="1200" alt="Kulbaba" src="docs/preview.png" /> 
 
 **A one-minute ritual that starts with one question: How do you feel?**
 
