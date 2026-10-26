@@ -28,8 +28,4 @@ The microphone only works on `localhost` or over HTTPS (GitHub Pages is fine).
 
 Everything visual and physical is in the `CONFIG` object at the top of the script in `index.html`: seed and bristle counts, light colours, dew drops, letter size, wind, depth of field, bloom, grain and quality limits.
 
-## Deploy
 
-**Vercel:** import the GitHub repository at vercel.com. It detects Vite, builds with `npm run build` and serves `dist/`. Every push to `main` redeploys.
-
-**GitHub Pages (optional):** set **Settings → Pages → Source** to **GitHub Actions**, then run the *Deploy to GitHub Pages* workflow from the Actions tab.
