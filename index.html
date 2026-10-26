@@ -122,16 +122,17 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: 
 .serif { font-family: "Cormorant Garamond", "Noto Serif", Georgia, "Times New Roman", serif; }
 .veil {
   position: absolute; inset: 0; z-index: 3;
-  display: grid; place-content: center; justify-items: center; gap: 18px; text-align: center;
-  padding: 24px max(16px, env(safe-area-inset-left, 0px));
-  background: radial-gradient(120% 80% at 50% 45%, color-mix(in srgb, var(--fade) 45%, transparent), var(--fade));
+  /* the questions sit at the top, so the dandelion and the meadow stay visible below */
+  display: grid; place-content: start center; justify-items: center; gap: 14px; text-align: center;
+  padding: calc(var(--headerh, 90px) + 4px) max(16px, env(safe-area-inset-left, 0px)) 24px;
+  background: linear-gradient(to bottom, var(--fade) 0%, color-mix(in srgb, var(--fade) 60%, transparent) 38%, transparent 62%);
   transition: opacity 0.9s ease, visibility 0s linear 0s;
 }
 .veil[hidden] { display: grid; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.9s ease, visibility 0s linear 0.9s; }
 .kicker { margin: 0; font: 800 12px/1.3 var(--body); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
 .ask, .closing {
   margin: 0; max-width: 16ch; color: var(--ink); text-wrap: balance;
-  font-weight: 600; font-size: clamp(38px, 7vw, 76px); line-height: 1.02; letter-spacing: -0.01em;
+  font-weight: 600; font-size: clamp(34px, 5vw, 60px); line-height: 1.02; letter-spacing: -0.01em;
   text-shadow: 0 0 30px var(--halo);
 }
 .closing { font-style: italic; max-width: 18ch; }
@@ -158,22 +159,26 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: 
 }
 .burden .g { transition: opacity 0.7s ease, color 0.7s ease; }
 .burden .g.gone { opacity: 0; color: var(--accent); }
-.burden .q { opacity: 0.55; }
+.burden .q { opacity: 0.55; transition: opacity 0.7s ease; }
+.burden.empty .q { opacity: 0; } /* the quotes leave with the last letter */
 
 /* How do you feel? Two cards. */
 .moods { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 6px; }
+/* compact rows (icon beside the words), so the cards cover as little of the flower as possible */
 .mood-card {
-  display: grid; justify-items: center; gap: 6px; width: min(240px, 38vw); box-sizing: border-box;
-  padding: 22px 16px 20px; border-radius: 22px; border: 1px solid var(--line);
+  display: grid; grid-template-columns: auto 1fr; justify-items: start; align-items: center; text-align: start;
+  column-gap: 14px; row-gap: 2px; width: min(270px, 40vw); box-sizing: border-box;
+  padding: 14px 18px; border-radius: 20px; border: 1px solid var(--line);
   background: color-mix(in srgb, var(--fade) 55%, transparent); color: var(--ink); font: inherit; cursor: pointer;
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
 }
 .mood-card:hover, .mood-card:focus-visible { transform: translateY(-3px); border-color: var(--accent); background: color-mix(in srgb, var(--fade) 75%, transparent); }
-.mood-card svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mood-card svg { width: 38px; height: 38px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .mood-card[data-mood="heavy"] svg { color: #b8c6ec; }
 .mood-card[data-mood="light"] svg { color: var(--accent); }
-.mood-card b { font: italic 600 clamp(28px, 4vw, 40px)/1 "Cormorant Garamond", "Noto Serif", Georgia, serif; }
+.mood-card svg { grid-row: span 2; }
+.mood-card b { font: italic 600 clamp(26px, 3vw, 34px)/1 "Cormorant Garamond", "Noto Serif", Georgia, serif; }
 .mood-card .sub { font-size: 14px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
 .back { font-size: 14px; color: var(--muted); text-decoration: none; }
 .back:hover { color: var(--ink); }
@@ -317,7 +322,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: 
       </button>
       <button class="mood-card" type="button" data-mood="light">
         <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8"/><path d="M24 6v5M24 37v5M6 24h5M37 24h5M11.3 11.3l3.5 3.5M33.2 33.2l3.5 3.5M11.3 36.7l3.5-3.5M33.2 14.8l3.5-3.5"/></svg>
-        <b id="lightLabel">Light</b><span class="sub" id="lightSub">Sow an idea and let it grow</span>
+        <b id="lightLabel">Light</b><span class="sub" id="lightSub">Plant your words and let them grow</span>
       </button>
     </div>
   </section>
@@ -361,6 +366,7 @@ const CONFIG = {
   bristleAlpha: 1.0,              // opacity of a single bristle
   dewDrops: 0.55,                 // share of seeds carrying water droplets (0 = dry)
   letterSize: 1.0,                // size of your letters on the flying seeds
+  letterGap: 0.22,                // seconds between letters leaving, so you can watch your words go one by one
   burdenMax: 60,                  // longest sentence you can give the dandelion
   inhale: 0.9,                    // seconds of "Breathe in" after pressing, before the blowing starts
   guideHold: 5,                   // seconds the whole phrase stays after a long breath out
@@ -413,7 +419,7 @@ const PHRASES = {
 const I18N = {
   uk: {
     kicker: "Кульбаба · ритуал на одну хвилину", feel: "Як ти почуваєшся?",
-    heavyLabel: "Важко", heavySub: "Здмухни те, що гнітить", lightLabel: "Легко", lightSub: "Посій ідею — і нехай проросте",
+    heavyLabel: "Важко", heavySub: "Здмухни те, що гнітить", lightLabel: "Легко", lightSub: "Посади свої слова — і нехай проростуть",
     back: "← Інший настрій", note: "Твої слова залишаються лише на цьому пристрої.", skip: "Або просто подихати",
     again: "Ще раз", switchMood: "Змінити настрій",
     heavy: {
@@ -423,15 +429,15 @@ const I18N = {
     },
     light: {
       ask: "Що ти хочеш виростити?", examples: ["нова ідея", "мрія", "доброта", "сміливий початок"],
-      give: "Посіяти", howto: ["Натисни й тримай", " — вдихни, а потім посій свої слова."],
-      done: "Твою ідею посіяно.", closing: "Нехай проростає.",
+      give: "Посадити слова", howto: ["Натисни й тримай", " — вдихни, а потім посади свої слова."],
+      done: "Твої слова посаджено.", closing: "Нехай проростають.",
     },
     blow: "Тримай, щоб дмухнути", mic: "Дмухнути в мікрофон", soundOn: "Звук увімк.", soundOff: "Звук вимк.",
     status: "Або тримай пробіл, торкнись квітки для короткого видиху, проведи по ній для довгого чи дмухни в мікрофон.",
   },
   en: {
     kicker: "Kulbaba · a one-minute ritual", feel: "How do you feel?",
-    heavyLabel: "Heavy", heavySub: "Blow away what weighs on you", lightLabel: "Light", lightSub: "Sow an idea and let it grow",
+    heavyLabel: "Heavy", heavySub: "Blow away what weighs on you", lightLabel: "Light", lightSub: "Plant your words and let them grow",
     back: "← Change mood", note: "Your words stay on this device.", skip: "Or just breathe",
     again: "Again", switchMood: "Change mood",
     heavy: {
@@ -441,15 +447,15 @@ const I18N = {
     },
     light: {
       ask: "What do you want to grow?", examples: ["a new idea", "a wish", "kindness", "a brave beginning"],
-      give: "Sow it", howto: ["Press and hold", " — breathe in, then sow your words."],
-      done: "Your idea is sown.", closing: "Let it grow.",
+      give: "Plant your words", howto: ["Press and hold", " — breathe in, then plant your words."],
+      done: "Your words are planted.", closing: "Let them grow.",
     },
     blow: "Hold to blow", mic: "Blow into mic", soundOn: "Sound on", soundOff: "Sound off",
     status: "Or hold the space bar, tap the flower for a short breath, swipe across it for a long one, or blow into the mic.",
   },
   fr: {
     kicker: "Kulbaba · un rituel d’une minute", feel: "Comment te sens-tu ?",
-    heavyLabel: "Lourd", heavySub: "Souffle ce qui te pèse", lightLabel: "Léger", lightSub: "Sème une idée et laisse-la pousser",
+    heavyLabel: "Lourd", heavySub: "Souffle ce qui te pèse", lightLabel: "Léger", lightSub: "Plante tes mots et laisse-les pousser",
     back: "← Changer d’humeur", note: "Tes mots restent sur cet appareil.", skip: "Ou simplement respirer",
     again: "Encore", switchMood: "Changer d’humeur",
     heavy: {
@@ -459,15 +465,15 @@ const I18N = {
     },
     light: {
       ask: "Que veux-tu faire pousser ?", examples: ["une idée nouvelle", "un vœu", "la bienveillance", "un nouveau départ"],
-      give: "La semer", howto: ["Appuie longuement", " — inspire, puis sème tes mots."],
-      done: "Ton idée est semée.", closing: "Laisse-la pousser.",
+      give: "Planter mes mots", howto: ["Appuie longuement", " — inspire, puis plante tes mots."],
+      done: "Tes mots sont plantés.", closing: "Laisse-les pousser.",
     },
     blow: "Maintenir pour souffler", mic: "Souffler dans le micro", soundOn: "Son activé", soundOff: "Son coupé",
     status: "Ou maintiens la barre d’espace, touche la fleur pour un souffle court, glisse dessus pour un long, ou souffle dans le micro.",
   },
   es: {
     kicker: "Kulbaba · un ritual de un minuto", feel: "¿Cómo te sientes?",
-    heavyLabel: "Pesado", heavySub: "Sopla lo que te pesa", lightLabel: "Ligero", lightSub: "Siembra una idea y deja que crezca",
+    heavyLabel: "Pesado", heavySub: "Sopla lo que te pesa", lightLabel: "Ligero", lightSub: "Planta tus palabras y deja que crezcan",
     back: "← Cambiar de ánimo", note: "Tus palabras se quedan en este dispositivo.", skip: "O solo respirar",
     again: "Otra vez", switchMood: "Cambiar de ánimo",
     heavy: {
@@ -477,15 +483,15 @@ const I18N = {
     },
     light: {
       ask: "¿Qué quieres hacer crecer?", examples: ["una idea nueva", "un deseo", "la amabilidad", "un comienzo valiente"],
-      give: "Sembrarlo", howto: ["Mantén pulsado", " — inhala y luego siembra tus palabras."],
-      done: "Tu idea está sembrada.", closing: "Deja que crezca.",
+      give: "Plantar mis palabras", howto: ["Mantén pulsado", " — inhala y luego planta tus palabras."],
+      done: "Tus palabras están plantadas.", closing: "Deja que crezcan.",
     },
     blow: "Mantén para soplar", mic: "Soplar al micrófono", soundOn: "Sonido sí", soundOff: "Sonido no",
     status: "O mantén la barra espaciadora, toca la flor para un soplo corto, deslízate sobre ella para uno largo, o sopla al micrófono.",
   },
   ja: {
     kicker: "Kulbaba · 一分間の儀式", feel: "今の気分は？",
-    heavyLabel: "重い", heavySub: "心の重さを吹き飛ばす", lightLabel: "軽い", lightSub: "アイデアの種をまいて育てる",
+    heavyLabel: "重い", heavySub: "心の重さを吹き飛ばす", lightLabel: "軽い", lightSub: "言葉を植えて、育てよう",
     back: "← 気分を選び直す", note: "言葉はこの端末の中だけに残ります。", skip: "ただ呼吸する",
     again: "もう一度", switchMood: "気分を変える",
     heavy: {
@@ -495,15 +501,15 @@ const I18N = {
     },
     light: {
       ask: "何を育てたいですか？", examples: ["新しいアイデア", "願いごと", "やさしさ", "勇気ある一歩"],
-      give: "種をまく", howto: ["長押しして", "息を吸い、言葉の種をまこう。"],
-      done: "あなたのアイデアがまかれました。", closing: "育っていきますように。",
+      give: "言葉を植える", howto: ["長押しして", "息を吸い、言葉を植えよう。"],
+      done: "あなたの言葉が植えられました。", closing: "育っていきますように。",
     },
     blow: "長押しで吹く", mic: "マイクに息を吹く", soundOn: "音あり", soundOff: "音なし",
     status: "スペースキーを長押し、花をタップで短く、なぞって長く、またはマイクに息を吹きかけても。",
   },
   zh: {
     kicker: "Kulbaba · 一分钟的仪式", feel: "你现在感觉怎么样？",
-    heavyLabel: "沉重", heavySub: "把压在心上的吹走", lightLabel: "轻松", lightSub: "播下一个想法，让它生长",
+    heavyLabel: "沉重", heavySub: "把压在心上的吹走", lightLabel: "轻松", lightSub: "种下你的话语，让它们生长",
     back: "← 换一种心情", note: "你的文字只留在这台设备上。", skip: "或者只是呼吸",
     again: "再来一次", switchMood: "换一种心情",
     heavy: {
@@ -513,15 +519,15 @@ const I18N = {
     },
     light: {
       ask: "你想让什么生长？", examples: ["一个新想法", "一个愿望", "善意", "勇敢的开始"],
-      give: "播下它", howto: ["按住不放", "——吸气，再把你的话播撒出去。"],
-      done: "你的想法已经播下。", closing: "让它生长吧。",
+      give: "种下我的话", howto: ["按住不放", "——吸气，再种下你的话语。"],
+      done: "你的话语已经种下。", closing: "让它们生长吧。",
     },
     blow: "按住吹气", mic: "对着麦克风吹", soundOn: "声音开", soundOff: "声音关",
     status: "也可以按住空格键，轻点花朵短吹，划过花朵长吹，或对着麦克风吹气。",
   },
   hi: {
     kicker: "Kulbaba · एक मिनट की रस्म", feel: "आप कैसा महसूस कर रहे हैं?",
-    heavyLabel: "भारी", heavySub: "जो बोझ है, उसे उड़ा दें", lightLabel: "हल्का", lightSub: "एक विचार बोएँ और उसे बढ़ने दें",
+    heavyLabel: "भारी", heavySub: "जो बोझ है, उसे उड़ा दें", lightLabel: "हल्का", lightSub: "अपने शब्द रोपें और उन्हें बढ़ने दें",
     back: "← मूड बदलें", note: "आपके शब्द इसी डिवाइस पर रहते हैं।", skip: "या बस साँस लें",
     again: "फिर से", switchMood: "मूड बदलें",
     heavy: {
@@ -531,15 +537,15 @@ const I18N = {
     },
     light: {
       ask: "आप क्या उगाना चाहते हैं?", examples: ["एक नया विचार", "एक इच्छा", "दयालुता", "एक साहसी शुरुआत"],
-      give: "बो दें", howto: ["दबाकर रखें", " — साँस लें, फिर अपने शब्द बो दें।"],
-      done: "आपका विचार बो दिया गया।", closing: "इसे बढ़ने दें।",
+      give: "शब्द रोपें", howto: ["दबाकर रखें", " — साँस लें, फिर अपने शब्द रोप दें।"],
+      done: "आपके शब्द रोप दिए गए।", closing: "उन्हें बढ़ने दें।",
     },
     blow: "फूँकने के लिए दबाए रखें", mic: "माइक में फूँकें", soundOn: "आवाज़ चालू", soundOff: "आवाज़ बंद",
     status: "या स्पेस बार दबाए रखें, छोटी साँस के लिए फूल को छुएँ, लंबी के लिए उस पर उँगली फेरें, या माइक में फूँकें।",
   },
   ar: {
     kicker: "Kulbaba · طقس لدقيقة واحدة", feel: "كيف تشعر؟",
-    heavyLabel: "ثقيل", heavySub: "انفخ ما يثقل قلبك", lightLabel: "خفيف", lightSub: "ازرع فكرة ودعها تنمو",
+    heavyLabel: "ثقيل", heavySub: "انفخ ما يثقل قلبك", lightLabel: "خفيف", lightSub: "ازرع كلماتك ودعها تنمو",
     back: "→ غيّر مزاجك", note: "كلماتك تبقى على هذا الجهاز فقط.", skip: "أو تنفّس فقط",
     again: "مرة أخرى", switchMood: "غيّر مزاجك",
     heavy: {
@@ -549,8 +555,8 @@ const I18N = {
     },
     light: {
       ask: "ما الذي تريد أن تُنبته؟", examples: ["فكرة جديدة", "أمنية", "اللطف", "بداية شجاعة"],
-      give: "ازرعه", howto: ["اضغط مطوّلًا", " — خذ نفسًا، ثم ازرع كلماتك."],
-      done: "زُرعت فكرتك.", closing: "دعها تنمو.",
+      give: "ازرع كلماتي", howto: ["اضغط مطوّلًا", " — خذ نفسًا، ثم ازرع كلماتك."],
+      done: "زُرعت كلماتك.", closing: "دعها تنمو.",
     },
     blow: "اضغط مطوّلًا للنفخ", mic: "انفخ في الميكروفون", soundOn: "الصوت يعمل", soundOff: "الصوت مطفأ",
     status: "أو اضغط مطوّلًا على المسافة، المس الزهرة لنفَس قصير، اسحب عليها لنفَس طويل، أو انفخ في الميكروفون.",
@@ -1897,6 +1903,40 @@ function applyTheme() {
   grassBack.visible = grassFront.visible = CONFIG.grass;
   if (W) paintBackground(W, H);
 }
+// ---------- camera framing ----------
+// During the ritual the flower sits between your words and the buttons. On the question screens the
+// camera glides so the flower stands just below the question, with the meadow (and its flowers) at the bottom.
+const TAN_HALF_FOV = Math.tan((FOV * Math.PI) / 360);
+const pose = { ritual: null, veil: null, cur: { x: 0, y: 0, dist: 7, ppu: 300 } };
+let layoutLangW = 0;
+function applyPose(p) {
+  camTarget.set(p.x, p.y, 0);
+  camera.position.set(p.x, p.y - 0.3, p.dist);
+  camera.lookAt(camTarget);
+  ppu = p.ppu;
+  U.uFocus.value = p.dist;
+  U.uPpu.value = ppu * pr;
+}
+function veilPose() {
+  const el = { mood: moodEl, intro: introEl, done: doneEl }[ritual.mode];
+  if (!el || !pose.ritual) return pose.ritual;
+  const vb = el.lastElementChild.getBoundingClientRect().bottom; // where the question screen's content ends
+  const R = HEAD_R * 1.1, ground = HEAD_Y - groundY + 0.1;
+  const p = Math.max(40, Math.min((H - vb - 30) / (R + ground), ((W - layoutLangW) * 0.9) / (2.15 * HEAD_R), 620 / (2.15 * HEAD_R)));
+  const headScreenY = vb + 14 + R * p;
+  return { x: layoutLangW / 2 / p, y: HEAD_Y - (H / 2 - headScreenY) / p, dist: H / (2 * TAN_HALF_FOV * p), ppu: p };
+}
+function glideCamera(dt) {
+  const goal = ritual.mode === "ritual" ? pose.ritual : pose.veil;
+  if (!goal) return;
+  const k = reduce ? 1 : 1 - Math.exp(-dt * 2.6);
+  const c = pose.cur;
+  if (Math.abs(c.dist - goal.dist) + Math.abs(c.y - goal.y) + Math.abs(c.x - goal.x) < 1e-4) return;
+  c.x += (goal.x - c.x) * k; c.y += (goal.y - c.y) * k; c.dist += (goal.dist - c.dist) * k;
+  c.ppu = H / (2 * TAN_HALF_FOV * c.dist);
+  applyPose(c);
+}
+
 function resize() {
   const r = cv.getBoundingClientRect();
   W = Math.max(1, r.width); H = Math.max(1, r.height);
@@ -1907,6 +1947,7 @@ function resize() {
 
   // Your sentence sits under the header; two lines are always reserved for it, so the flower never jumps.
   const header = document.querySelector(".top").offsetHeight;
+  document.documentElement.style.setProperty("--headerh", header + "px"); // the question screens start just below it
   // the language column on the right takes width; when it lies as a row in the corner (short screens) it does not
   const langsBox = document.getElementById("langs");
   const langW = getComputedStyle(langsBox).flexDirection === "column" ? langsBox.offsetWidth + 16 : 0;
@@ -1927,11 +1968,11 @@ function resize() {
   const headY = top + avail * 0.46;
   const dy = (H / 2 - headY) / ppu;
   camera.aspect = W / H;
-  const dx = langW / 2 / ppu; // look a little right so the flower sits centred in the free space
-  camTarget.set(dx, HEAD_Y - dy, 0);
-  camera.position.set(dx, camTarget.y - 0.3, dist);
-  camera.lookAt(camTarget);
   camera.updateProjectionMatrix();
+  layoutLangW = langW;
+  // the ritual framing decides where the ground is; the world then stays put while the camera moves
+  pose.ritual = { x: langW / 2 / ppu, y: HEAD_Y - dy, dist, ppu }; // look a little right: the flower sits centred in the free space
+  applyPose(pose.ritual);
   viewHalfW = W / 2 / ppu;
   groundY = camTarget.y - (H / 2 - foot * 0.45) / ppu; // leaves rise just above the tray
   stemBase.set(-0.22, groundY - 0.25, 0.1);
@@ -1940,8 +1981,10 @@ function resize() {
   placeGrass(grassFront, viewHalfW, groundY);
   dust.material.uniforms.uBox.value.set(viewHalfW * 1.4, H / 2 / ppu * 1.3, camTarget.y, groundY);
   fireflies.material.uniforms.uBox.value.set(viewHalfW * 1.3, H / ppu * 0.6, camTarget.y, groundY);
+  pose.veil = veilPose();
+  Object.assign(pose.cur, ritual.mode === "ritual" ? pose.ritual : pose.veil); // a resize snaps; mode changes glide
+  applyPose(pose.cur);
 
-  U.uFocus.value = dist;
   U.uAperture.value = 0.32 * CONFIG.dof;
   U.uPpu.value = ppu * pr;
   U.uPR.value = pr;
@@ -2274,7 +2317,7 @@ const guide = {
 // ---------- the ritual: how do you feel? → write it → breathe → blow it away / sow it → close ----------
 const T = () => I18N[langId];
 const appEl = $("app"), moodEl = $("moodScreen"), introEl = $("intro"), doneEl = $("done"), burdenEl = $("burden"), inputEl = $("burdenInput");
-const ritual = { mode: "mood", queue: [], given: 0, lastLetter: 0, lastFly: 0, lastLand: 0 };
+const ritual = { mode: "mood", queue: [], given: 0, lastLetter: 0, lastFly: 0, lastLand: 0, nextLetterAt: 0 };
 let exampleI = 0;
 
 function applyTexts() {
@@ -2311,6 +2354,7 @@ function setMode(mode) {
   moodEl.hidden = mode !== "mood";
   introEl.hidden = mode !== "intro";
   doneEl.hidden = mode !== "done";
+  if (pose.ritual) pose.veil = veilPose(); // frame the flower under this screen's question
 }
 // The mood sets the light, the music, what the question asks and what happens to your words.
 function chooseMood(m) {
@@ -2327,7 +2371,7 @@ function giveBurden(text) {
   initAudio();
   const letters = splitLetters(text.trim().slice(0, CONFIG.burdenMax));
   setGlyphs(letters.filter((l) => l.glyph).map((l) => l.glyph));
-  burdenEl.replaceChildren();
+  burdenEl.replaceChildren(); burdenEl.classList.remove("empty");
   ritual.queue = [];
   if (letters.length) {
     const quote = (q) => { const s = document.createElement("span"); s.className = "q"; s.textContent = q; return s; };
@@ -2348,12 +2392,21 @@ function giveBurden(text) {
   inputEl.blur(); blowBtn.focus({ preventScroll: true });
 }
 function takeLetter() {
-  ritual.lastFly = time;
   const q = ritual.queue.shift();
   if (!q) return -1;
   q.span.classList.add("gone");
+  if (!ritual.queue.length) burdenEl.classList.add("empty");
   ritual.lastLetter = time;
   return q.glyph;
+}
+// The next letter of your sentence leaves on this seed: it dissolves (heavy) or is planted (light).
+function giveLetter(s) {
+  const g = takeLetter();
+  if (g < 0) return;
+  s.glyph = g; s.reveal = 0; s.letterT = time; s.letterVis = 1;
+  s.dissolve = mood === "heavy";
+  s.sow = mood === "light" ? sowTarget(ritual.given - ritual.queue.length - 1, ritual.given) : null;
+  ritual.nextLetterAt = time + CONFIG.letterGap;
 }
 // When your words (or, if you only breathed, the seeds) are gone and you have breathed out, close gently.
 function checkFinished(attachedLeft) {
@@ -2364,7 +2417,7 @@ function checkFinished(attachedLeft) {
     ? !seeds.some((s) => s.sow && !s.landed) && time - ritual.lastLand > 2.4
     : time - ritual.lastLetter > 2.2;
   const wordsGone = ritual.given > 0 && ritual.queue.length === 0 && settled;
-  const headGone = attachedLeft === 0 && time - ritual.lastFly > 2;
+  const headGone = attachedLeft === 0 && ritual.queue.length === 0 && time - ritual.lastFly > 2;
   if (calm && (wordsGone || headGone)) { guide.hide(); setMode("done"); }
 }
 function reset() {
@@ -2423,12 +2476,11 @@ function detach(s, nW, localWind) {
   s.axisV.set(0, 0, 0);
   s.spinRate = (Math.random() - 0.5) * 1.4;
   s.age = 0;
-  s.glyph = takeLetter(); // the next letter of your sentence leaves with this seed
+  ritual.lastFly = time;
+  s.glyph = -1; // letters leave one by one: this seed takes one only if it is the next letter's turn
   // heavy: the letter dissolves in the air · light: the seed is sown and its letter blooms into a flower
-  s.dissolve = mood === "heavy";
-  s.letterVis = 1;
-  s.landed = false;
-  s.sow = mood === "light" && s.glyph >= 0 ? sowTarget(ritual.given - ritual.queue.length - 1, ritual.given) : null;
+  s.dissolve = false; s.letterVis = 1; s.landed = false; s.sow = null;
+  if (time >= ritual.nextLetterAt) giveLetter(s);
   // neighbours lose their grip too, so seeds peel away in clusters
   for (const j of NEIGH[s.i]) {
     const n = headSeeds[j];
@@ -2484,6 +2536,8 @@ function step(dt) {
   spring.x = clamp(spring.x + spring.vx * dt, -1.3, 1.3);
   spring.z = clamp(spring.z + spring.vz * dt, -1.3, 1.3);
   updateStem();
+
+  glideCamera(dt);
 
   // head transform
   stemPoint(1, _p); stemPoint(0.985, _q);
@@ -2581,7 +2635,7 @@ function step(dt) {
         spawnFlower(s.sow.root, s.sow.h);
       }
     }
-    if (s.dissolve) s.letterVis = 1 - smooth(1.6, 4.2, s.age);
+    if (s.dissolve) s.letterVis = 1 - smooth(1.6, 4.2, time - s.letterT);
     s.vel.x += (air.x - s.vel.x) * KD * dt;
     s.vel.y += ((air.y - s.vel.y) * KD - VT * KD) * dt;
     s.vel.z += (air.z - s.vel.z) * KD * dt;
@@ -2610,6 +2664,10 @@ function step(dt) {
     if (!s.sow && off && s.age > 0.6) s.fade = Math.max(0, s.fade - dt * 2.5);
     s.near = smooth(2.4, 4.5, s.sw); // fade seeds drifting towards the lens
     if (s.fade <= 0) s.gone = true;
+  }
+  if (ritual.queue.length && time >= ritual.nextLetterAt) {
+    const carrier = seeds.find((s) => !s.attached && s.glyph < 0 && !s.landed && s.age < 4 && s.fade > 0.5 && s.sx > 0 && s.sx < W && s.sy > 0 && s.sy < H);
+    if (carrier) giveLetter(carrier);
   }
   if (seeds.some((s) => s.gone)) seeds = seeds.filter((s) => !s.gone);
   while (seeds.length > CAP) { const i = seeds.findIndex((s) => !s.attached); if (i < 0) break; seeds.splice(i, 1); }
@@ -2676,6 +2734,9 @@ applyTheme();
 resize();
 grow();
 setMode("mood");
+Object.assign(pose.cur, pose.veil); applyPose(pose.cur); // open already framed under the question
+// the serif font changes the height of the questions once it arrives
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (pose.ritual) pose.veil = veilPose(); });
 let resizeTimer;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 80); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
