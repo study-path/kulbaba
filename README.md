@@ -1,5 +1,9 @@
 # Kulbaba
 
+🔗 **Live Demo:** [kulbaba.vercel.app](https://kulbaba.vercel.app/)
+
+<!-- <img width="900" height="907" alt="Kulbaba" src="docs/preview.png" /> -->
+
 **A one-minute ritual that starts with one question: How do you feel?**
 
 - **Heavy** — write what weighs on you (a doubt, a worry about tomorrow, an old hurt). Breathe in, then blow: each seed that flies off the dew-covered 3D dandelion carries away the next letter of your words, and the letters dissolve in the dusk air. *Let go — and go on.*

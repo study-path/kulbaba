@@ -2837,8 +2837,6 @@ let resizeTimer;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 80); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-requestAnimationFrame(frame);
-window.__kb = { tick(n) { for (let i = 0; i < n; i++) step(1 / 60); renderFrame(); }, get flowers() { return flowerCount; } }; // DEBUG
-</script>
+requestAnimationFrame(frame);</script>
 </body>
 </html>
