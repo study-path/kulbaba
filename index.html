@@ -124,7 +124,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: 
   position: absolute; inset: 0; z-index: 3;
   /* the questions sit at the top, so the dandelion and the meadow stay visible below */
   display: grid; place-content: start center; justify-items: center; gap: 14px; text-align: center;
-  padding: calc(var(--headerh, 90px) + 4px) max(16px, env(safe-area-inset-left, 0px)) 24px;
+  padding: calc(var(--headerh, 90px) + clamp(20px, 4vh, 40px)) max(16px, env(safe-area-inset-left, 0px)) 24px; /* clear air under the header */
   background: linear-gradient(to bottom, var(--fade) 0%, color-mix(in srgb, var(--fade) 60%, transparent) 38%, transparent 62%);
   transition: opacity 0.9s ease, visibility 0s linear 0s;
 }
@@ -1558,29 +1558,120 @@ const leafMat = (tex) => mat({
   }
 }
 
-// ---------- flowers: what you sow in the "light" mood blooms where it lands ----------
+// ---------- flowers: what you plant in the "light" mood blooms where it lands ----------
+// A dandelion in bloom, painted twice side by side: a three-quarter view (left) and a side view (right).
+// Each head is hundreds of thin ray florets with toothed tips, deep orange at the heart and lemon at the edge.
 function flowerTexture() {
-  const c = document.createElement("canvas"); c.width = 128; c.height = 256;
+  const CW = 256, CH = 512;
+  const c = document.createElement("canvas"); c.width = CW * 2; c.height = CH;
   const g = c.getContext("2d");
-  g.lineCap = "round";
-  g.strokeStyle = "#6d8f34"; g.lineWidth = 5; // hollow stem
-  g.beginPath(); g.moveTo(64, 256); g.quadraticCurveTo(57, 165, 64, 84); g.stroke();
-  g.fillStyle = "#5d7f2a"; // one small toothed leaf
-  g.beginPath(); g.moveTo(62, 205); g.quadraticCurveTo(34, 188, 22, 158); g.lineTo(34, 170); g.lineTo(30, 158); g.quadraticCurveTo(48, 180, 62, 192); g.fill();
-  g.fillStyle = "#6d8f34"; // green bracts under the head
-  g.beginPath(); g.ellipse(64, 86, 13, 6, 0, 0, Math.PI * 2); g.fill();
-  // the head: layers of thin ray florets, seen a little from the side
-  g.save(); g.translate(64, 64); g.scale(1, 0.62);
-  for (const [R, n, col] of [[46, 36, "#efa300"], [39, 32, "#f7bb12"], [31, 28, "#ffcf33"], [21, 22, "#ffe066"]]) {
-    g.fillStyle = col;
-    for (let i = 0; i < n; i++) {
-      g.save(); g.rotate((i / n) * Math.PI * 2 + R);
-      g.beginPath(); g.ellipse(R * 0.55, 0, R * 0.5, 3.2, 0, 0, Math.PI * 2); g.fill();
-      g.restore();
+  const rnd = mulberry32(17);
+  const HX = 128, HY = 132, R = 100; // head centre and radius in each cell
+
+  function stem() {
+    // hollow, slightly curved, lit from the left; reddish near the ground
+    const pts = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24, y = HY + 18 + t * (CH - HY - 18);
+      pts.push([HX + Math.sin(t * 2.4) * 7 - t * 4, y, 4.2 + t * 2.2]);
     }
+    const grad = g.createLinearGradient(HX - 8, 0, HX + 8, 0);
+    grad.addColorStop(0, "#3d5a1c"); grad.addColorStop(0.35, "#8fb34c"); grad.addColorStop(0.6, "#6f9a33"); grad.addColorStop(1, "#3b5619");
+    g.fillStyle = grad;
+    g.beginPath();
+    pts.forEach(([x, y, w], i) => (i ? g.lineTo(x - w, y) : g.moveTo(x - w, y)));
+    for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i][0] + pts[i][2], pts[i][1]);
+    g.closePath(); g.fill();
+    const base = g.createLinearGradient(0, CH - 120, 0, CH);
+    base.addColorStop(0, "rgba(150,60,50,0)"); base.addColorStop(1, "rgba(150,60,50,0.55)");
+    g.save(); g.globalCompositeOperation = "source-atop"; g.fillStyle = base; g.fillRect(0, CH - 120, CW, 120); g.restore();
   }
-  g.fillStyle = "#e39a00"; g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.fill();
-  g.restore();
+
+  function bracts(squash) {
+    // the green cup under the head, and the outer bracts curling back down the stem
+    g.strokeStyle = "#4f7426"; g.lineCap = "round";
+    for (let i = 0; i < 9; i++) {
+      const x = HX - 26 + i * 6.5 + (rnd() - 0.5) * 3, len = 26 + rnd() * 18;
+      g.lineWidth = 3 + rnd() * 1.5;
+      g.beginPath(); g.moveTo(x, HY + 14); g.quadraticCurveTo(x + (x - HX) * 0.5, HY + 22, x + (x - HX) * 0.35, HY + 14 + len); g.stroke();
+    }
+    const cup = g.createLinearGradient(0, HY - 6, 0, HY + 26);
+    cup.addColorStop(0, "#7aa23c"); cup.addColorStop(1, "#3f6219");
+    g.fillStyle = cup;
+    g.beginPath(); g.ellipse(HX, HY + 10, 34, 18 * (0.6 + squash * 0.4), 0, 0, Math.PI * 2); g.fill();
+  }
+
+  // one ray floret: a narrow strap from near the centre out to a squarish, three-toothed tip
+  function floret(a, r0, r1, w, lift, squash, front, shade) {
+    const x0 = HX + Math.cos(a) * r0, y0 = HY + Math.sin(a) * r0 * squash - lift * 0.3;
+    const x1 = HX + Math.cos(a) * r1, y1 = HY + Math.sin(a) * r1 * squash - lift;
+    let dx = x1 - x0, dy = y1 - y0; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+    const nx = -dy, ny = dx;
+    const mx = x0 + dx * L * 0.55, my = y0 + dy * L * 0.55;
+    const tw = w * (0.55 + 0.45 * Math.abs(Math.cos(a))); // seen edge-on, a floret looks narrower
+    const grad = g.createLinearGradient(x0, y0, x1, y1);
+    grad.addColorStop(0, front ? "#d98400" : "#e49a0a");
+    grad.addColorStop(0.45, "#f8bb14");
+    grad.addColorStop(1, shade > 0 ? "#ffe274" : "#ffd84a");
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(x0 + nx * tw * 0.18, y0 + ny * tw * 0.18);
+    g.lineTo(mx + nx * tw * 0.5, my + ny * tw * 0.5);
+    g.lineTo(x1 + nx * tw * 0.45, y1 + ny * tw * 0.45);
+    g.lineTo(x1 + dx * 2 + nx * tw * 0.25, y1 + dy * 2 + ny * tw * 0.25); // the three tiny teeth
+    g.lineTo(x1 + nx * tw * 0.08, y1 + ny * tw * 0.08);
+    g.lineTo(x1 + dx * 2.4, y1 + dy * 2.4);
+    g.lineTo(x1 - nx * tw * 0.08, y1 - ny * tw * 0.08);
+    g.lineTo(x1 + dx * 2 - nx * tw * 0.25, y1 + dy * 2 - ny * tw * 0.25);
+    g.lineTo(x1 - nx * tw * 0.45, y1 - ny * tw * 0.45);
+    g.lineTo(mx - nx * tw * 0.5, my - ny * tw * 0.5);
+    g.lineTo(x0 - nx * tw * 0.18, y0 - ny * tw * 0.18);
+    g.closePath(); g.fill();
+    g.strokeStyle = "rgba(150,80,0,0.28)"; g.lineWidth = 0.6; g.stroke();
+    g.strokeStyle = "rgba(255,250,210,0.35)"; g.lineWidth = 0.5; // a fine vein catching the light
+    g.beginPath(); g.moveTo(x0 + dx * L * 0.25, y0 + dy * L * 0.25); g.lineTo(x1 - dx * 3, y1 - dy * 3); g.stroke();
+  }
+
+  function head(squash) {
+    // outer rings open wide; inner rings stand up and curl towards the centre
+    const rings = [];
+    for (let k = 0; k < 7; k++) {
+      const n = 46 - k * 5;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + k * 0.37 + (rnd() - 0.5) * 0.08;
+        const r1 = R * (1 - k * 0.12) * (0.9 + rnd() * 0.16);
+        const lift = k * 9 * (1.1 - squash);
+        rings.push({ a, r0: R * 0.12, r1, w: 7.5 - k * 0.7, lift, k });
+      }
+    }
+    const back = rings.filter((f) => Math.sin(f.a) < 0).sort((p, q) => p.k - q.k);  // behind: outer first
+    const front = rings.filter((f) => Math.sin(f.a) >= 0).sort((p, q) => q.k - p.k); // in front: inner first, outer last
+    for (const f of back) floret(f.a, f.r0, f.r1, f.w, f.lift, squash, false, 1);
+    // the dense heart of tiny unopened florets
+    const heart = g.createRadialGradient(HX, HY - 8, 2, HX, HY - 4, R * 0.26);
+    heart.addColorStop(0, "#f6b51c"); heart.addColorStop(0.7, "#d98a00"); heart.addColorStop(1, "rgba(200,120,0,0)");
+    g.fillStyle = heart; g.beginPath(); g.ellipse(HX, HY - 6, R * 0.26, R * 0.26 * (0.55 + squash * 0.45), 0, 0, Math.PI * 2); g.fill();
+    for (let i = 0; i < 60; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * R * 0.2;
+      g.fillStyle = rnd() < 0.5 ? "rgba(255,214,90,0.8)" : "rgba(190,110,0,0.7)";
+      g.beginPath(); g.arc(HX + Math.cos(a) * r, HY - 6 + Math.sin(a) * r * squash - (1 - r / (R * 0.2)) * 6, 1.4, 0, Math.PI * 2); g.fill();
+    }
+    for (const f of front) floret(f.a, f.r0, f.r1, f.w, f.lift, squash, true, Math.sin(f.a) > 0.6 ? 0 : 1);
+    // shade the underside of the head, warm light on top
+    g.save();
+    g.beginPath(); g.ellipse(HX, HY - 4, R * 1.08, R * 1.08 * squash + 30, 0, 0, Math.PI * 2); g.clip();
+    g.globalCompositeOperation = "source-atop";
+    const sh = g.createLinearGradient(0, HY - R * squash - 30, 0, HY + R * squash + 10);
+    sh.addColorStop(0, "rgba(255,255,220,0.18)"); sh.addColorStop(0.55, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(120,50,0,0.32)");
+    g.fillStyle = sh; g.fillRect(HX - R - 10, HY - R - 40, R * 2 + 20, R * 2 + 60);
+    g.restore();
+  }
+
+  for (const [cell, squash] of [[0, 0.7], [1, 0.4]]) {
+    g.save(); g.translate(cell * CW, 0);
+    stem(); bracts(squash); head(squash);
+    g.restore();
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4;
   return t;
@@ -1600,7 +1691,7 @@ const flowers = (() => {
     side: THREE.DoubleSide,
     uniforms: Object.assign({ tFlower: { value: flowerTexture() } }, U),
     vertexShader: `attribute vec3 iRoot; attribute vec4 iF;
-      varying vec2 vUv; varying float vY;
+      varying vec2 vUv; varying float vY; varying float vBias;
       void main() {
         float g = clamp((uTime - iF.y) / 1.8, 0.0, 1.0), k = g - 1.0;
         float e = g <= 0.0 ? 0.0 : 1.0 + 2.5 * k * k * k + 1.5 * k * k; // grow with a little overshoot
@@ -1611,14 +1702,19 @@ const flowers = (() => {
         float y = position.y;
         vec3 p = iRoot + right * position.x * H * 0.5 + vec3(0.0, y * H, 0.0);
         p += right * w * 0.35 * y * y * H;                                 // and droops as it goes
+        p += right * (fract(iF.z * 7.31) - 0.5) * 0.32 * y * y * H;         // every stem leans its own way
         p += right * (sin(uTime * 1.2 + iF.z * 30.0) * 0.05 + uWind.x * 0.04) * y * y * H;
-        vUv = uv; vY = y;
-        gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+        // one of the two painted views, some mirrored, so the meadow does not repeat itself
+        float u = iF.z < 0.25 || (iF.z >= 0.5 && iF.z < 0.75) ? 1.0 - uv.x : uv.x;
+        vUv = vec2((u + step(0.5, iF.z)) * 0.5, uv.y); vY = y;
+        vec4 mv = viewMatrix * vec4(p, 1.0);
+        vBias = clamp(uAperture * abs(-mv.z - uFocus) / uFocus * 9.0, 0.0, 3.0); // softer away from the focus
+        gl_Position = projectionMatrix * mv;
         if (e <= 0.001) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
       }`,
-    fragmentShader: `uniform sampler2D tFlower; varying vec2 vUv; varying float vY;
+    fragmentShader: `uniform sampler2D tFlower; varying vec2 vUv; varying float vY; varying float vBias;
       void main() {
-        vec4 t = texture2D(tFlower, vUv);
+        vec4 t = texture2D(tFlower, vUv, vBias);
         if (t.a < 0.5) discard;
         vec3 col = t.rgb * (uAmb * 2.2 + uSun * (0.7 + 0.3 * smoothstep(0.6, 0.9, vY)));
         gl_FragColor = vec4(col, 1.0);
@@ -1667,7 +1763,7 @@ function sowTarget(k, n) {
   const z = -1.6 + Math.random() * 2.4;
   const persp = (camera.position.z - z) / camera.position.z;
   const x = camTarget.x + ((sx - W / 2) / ppu) * persp;
-  const h = 0.9 + Math.random() * 0.8;
+  const h = 0.75 + Math.pow(Math.random(), 0.8) * 1.05; // some short, some tall: a meadow, not a hedge
   return { root: new THREE.Vector3(x, groundY, z), head: new THREE.Vector3(x, groundY + h, z), h };
 }
 
@@ -2741,6 +2837,8 @@ let resizeTimer;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 80); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-requestAnimationFrame(frame);</script>
+requestAnimationFrame(frame);
+window.__kb = { tick(n) { for (let i = 0; i < n; i++) step(1 / 60); renderFrame(); }, get flowers() { return flowerCount; } }; // DEBUG
+</script>
 </body>
 </html>
