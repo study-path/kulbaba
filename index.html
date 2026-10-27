@@ -102,6 +102,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: 
 }
 .btn:hover { border-color: var(--muted); }
 .btn:not(.primary) { padding: 9px 13px; font-size: 14px; background: color-mix(in srgb, var(--fade) 40%, transparent); }
+.btn[hidden] { display: none; }
 .btn.icon svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 #sound[aria-pressed="true"] .off, #sound[aria-pressed="false"] .on { display: none; }
 .intro .note { max-width: calc(100vw - var(--langw, 0px) - 32px); }
@@ -371,11 +372,12 @@ const CONFIG = {
   inhale: 0.9,                    // seconds of "Breathe in" after pressing, before the blowing starts
   guideHold: 5,                   // seconds the whole phrase stays after a long breath out
   // microphone: "heavy" listens for a long, slow exhale; "light" listens for your voice reading your words aloud
-  micGate: 2.5,                   // how much louder than the room's quiet a sound must be to count
+  micGate: 1.6,                   // how many times louder than the room's quiet a sound must be to count
+  micRange: 12,                   // decibels above that for full strength (works for quiet and loud microphones alike)
   micVoicePitch: 0.5,             // how clearly pitched (0-1) a sound must be to count as a voice (or singing)
   micBreathPitch: 0.4,            // breath has no pitch: below this it can count as breath...
-  micBreathFlat: 0.05,            // ...when it is a little noise-like (hiss)...
-  micBreathLow: 0.25,             // ...or has some low rumble (air hitting the mic)
+  micBreathFlat: 0.3,             // ...when it is also noise-like (a real breath measured ~0.6; music stays far lower)
+  micBreathMax: 8,                // seconds: a "breath" longer than this is a steady room noise (a fan), not a person
   grass: false,                   // grass blades in front of / behind the flower
   wind: 1.0,                      // strength of blowing, swiping and tapping
   breeze: 1.0,                    // idle breeze that keeps the head alive
@@ -2344,7 +2346,7 @@ function previewMelody() {
   melodyPos = 0; nextNoteAt = t;
 }
 function whoosh(amount) {
-  if (!ac || !soundOn) return;
+  if (!ac || !soundOn || hissMuted()) return; // silent while the mic listens for a breath: it would hear it as one
   windGain.gain.cancelScheduledValues(ac.currentTime);
   windGain.gain.setTargetAtTime(0.3 * amount, ac.currentTime, 0.02);
 }
@@ -2359,26 +2361,31 @@ $("sound").addEventListener("click", () => {
 });
 
 const status = $("status");
+// Blowing into the mic is for phones, whose mic sits right at your mouth; on a laptop it is awkward, so there
+// "heavy" uses the Blow button, the space bar or a swipe. Reading aloud ("light") works fine on both.
+const touchDevice = matchMedia("(hover: none) and (pointer: coarse)").matches;
+const micAllowed = () => touchDevice || mood === "light";
+const hissMuted = () => analyser && mood === "heavy"; // the wind rustle would sound like a breath to the mic
+function stopMic() {
+  micStream && micStream.getTracks().forEach((t) => t.stop());
+  analyser = null; micStream = null; micBlow = 0;
+  $("mic").setAttribute("aria-pressed", "false"); $("meter").style.width = "0%";
+  status.textContent = T().status; status.classList.remove("msg");
+  applyTexts(); guide.fill();
+}
 $("mic").addEventListener("click", async () => {
   initAudio();
-  if (analyser) {
-    micStream && micStream.getTracks().forEach((t) => t.stop());
-    analyser = null; micStream = null; micBlow = 0;
-    $("mic").setAttribute("aria-pressed", "false"); $("meter").style.width = "0%";
-    status.textContent = T().status; status.classList.remove("msg");
-    applyTexts(); guide.fill();
-    return;
-  }
+  if (analyser) return stopMic();
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no media");
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
     const src = ac.createMediaStreamSource(micStream);
     analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.25;
     micData = new Float32Array(analyser.fftSize); micFreq = new Float32Array(analyser.frequencyBinCount);
     src.connect(analyser); // not connected to the speakers, so no feedback
     $("mic").setAttribute("aria-pressed", "true");
     // first, a second of listening to the room, so its quiet is not mistaken for a breath
-    Object.assign(mic, { calibUntil: time + 1, calibSum: 0, calibN: 0, kind: "calibrating", good: 0, wrong: 0, hintUntil: 0 });
+    Object.assign(mic, { calibUntil: time + 1, calibSum: 0, calibN: 0, kind: "calibrating", good: 0, wrong: 0, long: 0, match: 0, hintUntil: 0 });
     status.textContent = MIC_TEXT[langId].calibrating;
     status.classList.add("msg");
     applyTexts(); guide.fill();
@@ -2472,6 +2479,8 @@ function applyTexts() {
     $(id + "Label").textContent = text; $(id).setAttribute("aria-label", text); $(id).title = text;
   }
   $("flownLabel").textContent = FLOWN[langId];
+  $("mic").hidden = !micAllowed();
+  if (analyser && !micAllowed()) { stopMic(); return; }
   if (!analyser) status.textContent = t.status;
   for (const el of [moodEl, introEl, doneEl, $("howto"), status]) el.dir = dir;
   inputEl.placeholder = m.examples[exampleI % m.examples.length];
@@ -2587,15 +2596,31 @@ let micOut = false, micQuiet = 0;
 
 // ---------- listening: is it a breath, a voice, or just noise? ----------
 // Breath is noise-like (no pitch) with a strong low rumble where the air hits the mic; a voice has a clear pitch.
-let micFreq = null;
-const mic = { floor: 0, calibUntil: 0, calibSum: 0, calibN: 0, kind: "quiet", rms: 0, low: 0, flat: 0, pitch: 0, good: 0, wrong: 0, hintUntil: 0 };
-const micGateLevel = () => Math.max(0.006, mic.floor * CONFIG.micGate);
+let micFreq = null, micEmph = null;
+const mic = { floor: 0, calibUntil: 0, calibSum: 0, calibN: 0, kind: "quiet", rms: 0, low: 0, flat: 0, pitch: 0, good: 0, wrong: 0, long: 0, match: 0, hintUntil: 0 };
+// A second-order low- or high-pass filter, applied in place (the usual "biquad" recipe).
+function biquad(x, type, f0, fs) {
+  const w = (2 * Math.PI * f0) / fs, c = Math.cos(w), al = Math.sin(w) / (2 * Math.SQRT1_2);
+  const k = type === "low" ? (1 - c) / 2 : (1 + c) / 2, a0 = 1 + al;
+  const b0 = k / a0, b1 = (type === "low" ? 2 * k : -2 * k) / a0, b2 = k / a0, a1 = (-2 * c) / a0, a2 = (1 - al) / a0;
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const x0 = x[i], y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = x0; y2 = y1; y1 = y0; x[i] = y0;
+  }
+}
+const micGateLevel = () => Math.max(0.0012, mic.floor * CONFIG.micGate);
 function analyseSound() {
   analyser.getFloatTimeDomainData(micData);
   const n = micData.length;
   let sum = 0; for (let i = 0; i < n; i++) sum += micData[i] * micData[i];
   mic.rms = Math.sqrt(sum / n);
-  if (time < mic.calibUntil) { mic.calibSum += mic.rms; mic.calibN++; mic.floor = mic.calibSum / mic.calibN; mic.kind = "calibrating"; return; }
+  // a microphone often starts with a moment of pure silence: skip it, or the room's quiet is measured too low
+  // and the room itself then sounds like an endless breath
+  if (time < mic.calibUntil || !mic.calibN) {
+    if (mic.rms > 1e-5) { if (!mic.calibN) mic.calibUntil = time + 1; mic.calibSum += mic.rms; mic.calibN++; mic.floor = mic.calibSum / mic.calibN; }
+    mic.kind = "calibrating"; return;
+  }
   if (mic.kind === "calibrating") status.textContent = matchMedia("(pointer: coarse)").matches ? MIC_TEXT[langId].phoneTip : "";
   if (mic.rms < micGateLevel()) { mic.kind = "quiet"; mic.floor += (mic.rms - mic.floor) * 0.002; return; } // follow the room slowly
   // the shape of the sound up to 4 kHz: how much is low rumble, and how flat (noise-like) the rest is
@@ -2611,19 +2636,29 @@ function analyseSound() {
   }
   mic.low = eAll > 0 ? eLow / eAll : 0;
   mic.flat = nFlat ? Math.exp(logSum / nFlat) / (linSum / nFlat + 1e-20) : 0;
-  // how clearly pitched it is: the best self-similarity at voice periods (80-400 Hz), on every second sample
+  // How clearly pitched it is. First keep only the voice band (220-1400 Hz): below it is the smooth rumble of air
+  // on the mic, which would look "pitched"; above it the room's hiss, which would hide a quiet voice.
+  // A voice keeps its pitch in this band; a breath does not.
   const sr = ac.sampleRate / 2, m = n >> 1;
+  if (!micEmph || micEmph.length !== m) micEmph = new Float32Array(m);
+  for (let i = 0; i < m; i++) micEmph[i] = micData[i * 2];
+  biquad(micEmph, "high", 220, sr); biquad(micEmph, "low", 1400, sr);
+  // then the best self-similarity at voice periods (80-400 Hz), counting only true peaks, not a falling slope
   const lo = Math.floor(sr / 400), hi = Math.min(m - 64, Math.ceil(sr / 80));
-  let best = 0;
-  for (let lag = lo; lag <= hi; lag++) {
+  const corr = (lag) => {
     let xy = 0, xx = 0, yy = 0;
-    for (let i = 0; i + lag < m; i++) { const a = micData[i * 2], b = micData[(i + lag) * 2]; xy += a * b; xx += a * a; yy += b * b; }
-    const r = xy / Math.sqrt(xx * yy + 1e-20);
-    if (r > best) best = r;
+    for (let i = 0; i + lag < m; i++) { const a = micEmph[i], b = micEmph[i + lag]; xy += a * b; xx += a * a; yy += b * b; }
+    return xy / Math.sqrt(xx * yy + 1e-20);
+  };
+  let best = 0, rPrev = corr(lo - 1), r = corr(lo);
+  for (let lag = lo; lag <= hi; lag++) {
+    const rNext = corr(lag + 1);
+    if (r > rPrev && r >= rNext && r > best) best = r;
+    rPrev = r; r = rNext;
   }
   mic.pitch = best;
   mic.kind = best > CONFIG.micVoicePitch ? "voice"
-    : best < CONFIG.micBreathPitch && (mic.flat > CONFIG.micBreathFlat || mic.low > CONFIG.micBreathLow) ? "breath" : "noise";
+    : best < CONFIG.micBreathPitch && mic.flat > CONFIG.micBreathFlat ? "breath" : "noise";
 }
 // The mood decides which gesture moves the seeds.
 // Heavy: a long, gentle exhale. Its strength grows with steadiness and loudness is capped, so a sharp blast only stirs the head.
@@ -2631,13 +2666,21 @@ function analyseSound() {
 function listen(dt) {
   analyseSound();
   const want = mood === "heavy" ? "breath" : "voice", other = mood === "heavy" ? "voice" : "breath";
-  const right = mic.kind === want;
+  // a single frame can sound like noise in the middle of a breath: judge the last quarter second, not one frame,
+  // or the wind (and the guide with it) flickers on and off while you blow
+  mic.match += ((mic.kind === want ? 1 : 0) - mic.match) * (1 - Math.exp(-dt / 0.25));
+  const right = mic.match > 0.45 && ritual.mode === "ritual";
   mic.good = right ? mic.good + dt : Math.max(0, mic.good - dt * 2);
+  mic.long = want === "breath" && mic.match > 0.45 ? mic.long + dt : Math.max(0, mic.long - dt * 2);
+  if (mic.long > CONFIG.micBreathMax) { mic.floor = (mic.rms / CONFIG.micGate) * 1.2; mic.good = mic.long = 0; }
   mic.wrong = mic.kind === other ? mic.wrong + dt : Math.max(0, mic.wrong - dt);
-  const level = clamp((mic.rms - micGateLevel()) / 0.06, 0, 1);
+  // how far above the gate, in decibels: the same breath gives the same strength on a quiet or a loud microphone
+  const gate = micGateLevel();
+  const level = mic.rms > gate ? clamp((20 * Math.log10(mic.rms / gate)) / CONFIG.micRange, 0, 1) : 0;
+  // the gesture matters more than loudness: a calm, steady breath (or voice) is enough, even on a quiet microphone
   const target = !right ? 0 : mood === "heavy"
-    ? 6.5 * Math.min(1, level * 2) * (0.3 + 0.7 * smooth(0.2, 1.4, mic.good))
-    : 6 * Math.min(1, level * 2.5) * (0.5 + 0.5 * smooth(0.1, 0.5, mic.good));
+    ? 6.5 * (0.6 + 0.4 * level) * (0.3 + 0.7 * smooth(0.2, 1.2, mic.good))
+    : 6 * (0.6 + 0.4 * level) * (0.5 + 0.5 * smooth(0.1, 0.5, mic.good));
   micBlow += (target - micBlow) * (1 - Math.exp(-dt * (target > micBlow ? 4 : 2.5)));
   // a gentle nudge when the other gesture is used: speaking in "heavy", blowing in "light"
   if (mic.wrong > 0.7 && time > mic.hintUntil && ritual.mode === "ritual") {
@@ -2654,9 +2697,8 @@ function listen(dt) {
       "level    " + mic.rms.toFixed(4) + "  quiet " + mic.floor.toFixed(4) + "  gate " + micGateLevel().toFixed(4),
       "pitch    " + mic.pitch.toFixed(2) + "  (voice > " + CONFIG.micVoicePitch + ")",
       "         (breath < " + CONFIG.micBreathPitch + ")",
-      "flat     " + mic.flat.toFixed(2) + "  (breath > " + CONFIG.micBreathFlat + ")",
-      "low      " + mic.low.toFixed(2) + "  (breath > " + CONFIG.micBreathLow + ")",
-      "steady   " + mic.good.toFixed(1) + " s",
+      "flat     " + mic.flat.toFixed(2) + "  (breath > " + CONFIG.micBreathFlat + ")   low " + mic.low.toFixed(2),
+      "steady   " + mic.good.toFixed(1) + " s   match " + mic.match.toFixed(2),
       "wind     " + micBlow.toFixed(2),
     ].join("\n");
   }
@@ -2726,10 +2768,10 @@ function step(dt) {
   const ws = wind.length();
 
   // the guide follows the microphone too: quiet = breathe in, blowing = breathe out
-  if (analyser && !holding && !ptr.down) {
+  if (analyser && !holding && !ptr.down && ritual.mode === "ritual") {
     if (micBlow > 1) { if (guide.state !== "out") guide.set("out"); micOut = true; micQuiet = 0; }
-    else if (micOut && micBlow < 0.3) { micOut = false; guide.release(); }
-    else if (!micOut && guide.state === "idle" && (micQuiet += dt) > 2) { guide.set("in"); micQuiet = 0; }
+    else if (micOut && micBlow < 0.3 && (micQuiet += dt) > 0.6) { micOut = false; micQuiet = 0; guide.release(); } // a real pause, not a gap
+    else if (!micOut && guide.state === "idle" && (ritual.queue.length || !ritual.given) && (micQuiet += dt) > 2) { guide.set("in"); micQuiet = 0; }
   }
 
   ptr.vx *= Math.exp(-dt * 7); ptr.vy *= Math.exp(-dt * 7);
@@ -2895,9 +2937,9 @@ function step(dt) {
     else if (time > regrowAt && seeds.length < 12) grow();
   }
 
-  // wind sound
+  // wind sound (silent while the mic listens, or the mic would hear it as a breath)
   if (ac && windGain && soundOn) {
-    const level = Math.min(1, blow / 6 + Math.hypot(ptr.vx, ptr.vy) / 2500);
+    const level = hissMuted() ? 0 : Math.min(1, blow / 6 + Math.hypot(ptr.vx, ptr.vy) / 2500);
     windGain.gain.setTargetAtTime(level * 0.22, ac.currentTime, 0.12);
     windFilter.frequency.setTargetAtTime(350 + level * 1300, ac.currentTime, 0.12);
   }
