@@ -371,13 +371,12 @@ const CONFIG = {
   burdenMax: 60,                  // longest sentence you can give the dandelion
   inhale: 0.9,                    // seconds of "Breathe in" after pressing, before the blowing starts
   guideHold: 5,                   // seconds the whole phrase stays after a long breath out
-  // microphone: "heavy" listens for a long, slow exhale; "light" listens for your voice reading your words aloud
+  // microphone ("light" only): it listens for your voice reading your words aloud
   micGate: 1.6,                   // how many times louder than the room's quiet a sound must be to count
   micRange: 12,                   // decibels above that for full strength (works for quiet and loud microphones alike)
   micVoicePitch: 0.5,             // how clearly pitched (0-1) a sound must be to count as a voice (or singing)
-  micBreathPitch: 0.4,            // breath has no pitch: below this it can count as breath...
+  micBreathPitch: 0.4,            // breath has no pitch: below this it can count as breath (to hint "read aloud")...
   micBreathFlat: 0.3,             // ...when it is also noise-like (a real breath measured ~0.6; music stays far lower)
-  micBreathMax: 8,                // seconds: a "breath" longer than this is a steady room noise (a fan), not a person
   grass: false,                   // grass blades in front of / behind the flower
   wind: 1.0,                      // strength of blowing, swiping and tapping
   breeze: 1.0,                    // idle breeze that keeps the head alive
@@ -573,31 +572,23 @@ const I18N = {
 
 const FLOWN = { uk: "насінин полетіло", en: "seeds flown", fr: "graines envolées", es: "semillas volaron", ja: "粒が飛んだ", zh: "颗种子飞走了", hi: "बीज उड़े", ar: "بذرة طارت" };
 
-// What the microphone asks for in each mood: heavy = breathe out slowly, light = read your words aloud.
+// What the microphone asks for: read your words aloud (it is offered only in "light").
 const MIC_TEXT = {
   en: { calibrating: "Listening to the quiet around you…", phoneTip: "Tip: your phone's mic is at its bottom edge.",
-    heavy: { label: "Breathe into mic", howto: ["Breathe out slowly", " towards the mic — a long, gentle exhale lets your words go."], out: "Breathe out slowly…", wrong: "Just breathe out — no words needed." },
     light: { label: "Speak into mic", howto: ["Read your words aloud", " — your voice carries them into the meadow."], out: "Say it aloud…", wrong: "Read your words aloud — your voice plants them." } },
   fr: { calibrating: "J’écoute le silence autour de toi…", phoneTip: "Astuce : le micro du téléphone est sur son bord inférieur.",
-    heavy: { label: "Expirer dans le micro", howto: ["Expire lentement", " vers le micro — une longue expiration douce libère tes mots."], out: "Expire lentement…", wrong: "Expire simplement — pas besoin de mots." },
     light: { label: "Parler dans le micro", howto: ["Lis tes mots à voix haute", " — ta voix les porte dans la prairie."], out: "Dis-le à voix haute…", wrong: "Lis tes mots à voix haute — ta voix les plante." } },
   uk: { calibrating: "Слухаю тишу довкола…", phoneTip: "Порада: мікрофон телефона — на його нижньому краї.",
-    heavy: { label: "Видихати в мікрофон", howto: ["Повільно видихай", " у бік мікрофона — довгий, м’який видих відпускає твої слова."], out: "Повільно видихай…", wrong: "Просто видихни — слова не потрібні." },
     light: { label: "Говорити в мікрофон", howto: ["Прочитай свої слова вголос", " — твій голос понесе їх на луг."], out: "Скажи це вголос…", wrong: "Прочитай слова вголос — голос їх посадить." } },
   es: { calibrating: "Escuchando el silencio a tu alrededor…", phoneTip: "Consejo: el micrófono del teléfono está en su borde inferior.",
-    heavy: { label: "Exhalar al micrófono", howto: ["Exhala despacio", " hacia el micrófono — una exhalación larga y suave suelta tus palabras."], out: "Exhala despacio…", wrong: "Solo exhala — no hacen falta palabras." },
     light: { label: "Hablar al micrófono", howto: ["Lee tus palabras en voz alta", " — tu voz las lleva al prado."], out: "Dilo en voz alta…", wrong: "Lee tus palabras en voz alta — tu voz las planta." } },
   ja: { calibrating: "まわりの静けさを聞いています…", phoneTip: "ヒント：スマホのマイクは下の端にあります。",
-    heavy: { label: "マイクに息を吐く", howto: ["ゆっくり息を吐いて", "マイクに向けて長くやさしく吐くと、言葉が手放されます。"], out: "ゆっくり吐いて…", wrong: "息を吐くだけでいい — 言葉はいりません。" },
     light: { label: "マイクに話す", howto: ["言葉を声に出して読もう", "声が言葉を草原へ運びます。"], out: "声に出して…", wrong: "声に出して読もう — 声が言葉を植えます。" } },
   zh: { calibrating: "正在聆听你周围的安静……", phoneTip: "提示：手机的麦克风在底部边缘。",
-    heavy: { label: "对着麦克风呼气", howto: ["慢慢呼气", "，朝向麦克风——长而轻柔的呼气让你的话语离开。"], out: "慢慢呼气……", wrong: "只要呼气——不需要说话。" },
     light: { label: "对着麦克风说话", howto: ["把你的话大声读出来", "——你的声音会把它们带进草地。"], out: "大声说出来……", wrong: "大声读出你的话——声音会把它们种下。" } },
   hi: { calibrating: "आसपास की शांति सुन रहे हैं…", phoneTip: "सुझाव: फ़ोन का माइक उसके निचले किनारे पर है।",
-    heavy: { label: "माइक में साँस छोड़ें", howto: ["धीरे-धीरे साँस छोड़ें", " माइक की ओर — लंबी, कोमल साँस आपके शब्दों को जाने देती है।"], out: "धीरे-धीरे साँस छोड़ें…", wrong: "बस साँस छोड़ें — शब्दों की ज़रूरत नहीं।" },
     light: { label: "माइक में बोलें", howto: ["अपने शब्द ज़ोर से पढ़ें", " — आपकी आवाज़ उन्हें घास के मैदान तक ले जाती है।"], out: "इसे ज़ोर से कहें…", wrong: "अपने शब्द ज़ोर से पढ़ें — आवाज़ उन्हें रोपती है।" } },
   ar: { calibrating: "أستمع إلى الهدوء من حولك…", phoneTip: "نصيحة: ميكروفون الهاتف في حافته السفلية.",
-    heavy: { label: "ازفر في الميكروفون", howto: ["ازفر ببطء", " نحو الميكروفون — زفير طويل ولطيف يطلق كلماتك."], out: "ازفر ببطء…", wrong: "فقط ازفر — لا حاجة إلى كلمات." },
     light: { label: "تحدّث في الميكروفون", howto: ["اقرأ كلماتك بصوت عالٍ", " — صوتك يحملها إلى المرج."], out: "قلها بصوت عالٍ…", wrong: "اقرأ كلماتك بصوت عالٍ — صوتك يزرعها." } },
 };
 
@@ -2346,7 +2337,7 @@ function previewMelody() {
   melodyPos = 0; nextNoteAt = t;
 }
 function whoosh(amount) {
-  if (!ac || !soundOn || hissMuted()) return; // silent while the mic listens for a breath: it would hear it as one
+  if (!ac || !soundOn) return;
   windGain.gain.cancelScheduledValues(ac.currentTime);
   windGain.gain.setTargetAtTime(0.3 * amount, ac.currentTime, 0.02);
 }
@@ -2361,11 +2352,9 @@ $("sound").addEventListener("click", () => {
 });
 
 const status = $("status");
-// Blowing into the mic is for phones, whose mic sits right at your mouth; on a laptop it is awkward, so there
-// "heavy" uses the Blow button, the space bar or a swipe. Reading aloud ("light") works fine on both.
-const touchDevice = matchMedia("(hover: none) and (pointer: coarse)").matches;
-const micAllowed = () => touchDevice || mood === "light";
-const hissMuted = () => analyser && mood === "heavy"; // the wind rustle would sound like a breath to the mic
+// The mic is for "light" only: reading aloud works anywhere, but blowing into a mic is too weak to move the seeds,
+// so "heavy" uses the Blow button, the space bar, a tap or a swipe.
+const micAllowed = () => mood === "light";
 function stopMic() {
   micStream && micStream.getTracks().forEach((t) => t.stop());
   analyser = null; micStream = null; micBlow = 0;
@@ -2385,7 +2374,7 @@ $("mic").addEventListener("click", async () => {
     src.connect(analyser); // not connected to the speakers, so no feedback
     $("mic").setAttribute("aria-pressed", "true");
     // first, a second of listening to the room, so its quiet is not mistaken for a breath
-    Object.assign(mic, { calibUntil: time + 1, calibSum: 0, calibN: 0, kind: "calibrating", good: 0, wrong: 0, long: 0, match: 0, hintUntil: 0 });
+    Object.assign(mic, { calibUntil: time + 1, calibSum: 0, calibN: 0, kind: "calibrating", good: 0, wrong: 0, match: 0, hintUntil: 0 });
     status.textContent = MIC_TEXT[langId].calibrating;
     status.classList.add("msg");
     applyTexts(); guide.fill();
@@ -2426,7 +2415,7 @@ function setWord() {
 const guide = {
   el: $("breath"), state: "idle", since: 0, timer: 0,
   fill() { // breathe in, breathe out, then this mood's closing line
-    const p = [PHRASES[langId][0], analyser ? MIC_TEXT[langId][mood].out : PHRASES[langId][1], I18N[langId][mood].closing];
+    const p = [PHRASES[langId][0], analyser ? MIC_TEXT[langId].light.out : PHRASES[langId][1], I18N[langId][mood].closing];
     this.el.querySelectorAll("span").forEach((s, i) => { s.textContent = p[i]; });
     this.el.dir = langId === "ar" ? "rtl" : "ltr";
   },
@@ -2470,12 +2459,12 @@ function applyTexts() {
   $("note").textContent = t.note; $("skip").textContent = t.skip;
   $("doneKicker").textContent = m.done; $("closing").textContent = m.closing;
   $("again").textContent = t.again; $("switchMood").textContent = t.switchMood;
-  const how = analyser ? MIC_TEXT[langId][mood].howto : m.howto; // with the mic on: breathe out slowly / read aloud
+  const how = analyser ? MIC_TEXT[langId].light.howto : m.howto; // with the mic on: breathe out slowly / read aloud
   const bold = document.createElement("b"); bold.textContent = how[0];
   $("howto").replaceChildren(bold, how[1]);
   $("blow").textContent = t.blow;
   // icon buttons keep their names for screen readers even when phones show only the icon
-  for (const [id, text] of [["mic", MIC_TEXT[langId][mood].label], ["regrow", t.again], ["sound", soundOn ? t.soundOn : t.soundOff]]) {
+  for (const [id, text] of [["mic", MIC_TEXT[langId].light.label], ["regrow", t.again], ["sound", soundOn ? t.soundOn : t.soundOff]]) {
     $(id + "Label").textContent = text; $(id).setAttribute("aria-label", text); $(id).title = text;
   }
   $("flownLabel").textContent = FLOWN[langId];
@@ -2597,7 +2586,7 @@ let micOut = false, micQuiet = 0;
 // ---------- listening: is it a breath, a voice, or just noise? ----------
 // Breath is noise-like (no pitch) with a strong low rumble where the air hits the mic; a voice has a clear pitch.
 let micFreq = null, micEmph = null;
-const mic = { floor: 0, calibUntil: 0, calibSum: 0, calibN: 0, kind: "quiet", rms: 0, low: 0, flat: 0, pitch: 0, good: 0, wrong: 0, long: 0, match: 0, hintUntil: 0 };
+const mic = { floor: 0, calibUntil: 0, calibSum: 0, calibN: 0, kind: "quiet", rms: 0, low: 0, flat: 0, pitch: 0, good: 0, wrong: 0, match: 0, hintUntil: 0 };
 // A second-order low- or high-pass filter, applied in place (the usual "biquad" recipe).
 function biquad(x, type, f0, fs) {
   const w = (2 * Math.PI * f0) / fs, c = Math.cos(w), al = Math.sin(w) / (2 * Math.SQRT1_2);
@@ -2660,31 +2649,24 @@ function analyseSound() {
   mic.kind = best > CONFIG.micVoicePitch ? "voice"
     : best < CONFIG.micBreathPitch && mic.flat > CONFIG.micBreathFlat ? "breath" : "noise";
 }
-// The mood decides which gesture moves the seeds.
-// Heavy: a long, gentle exhale. Its strength grows with steadiness and loudness is capped, so a sharp blast only stirs the head.
-// Light: your voice, reading your words aloud, carries them while you speak.
+// Your voice, reading your words aloud, carries them while you speak.
 function listen(dt) {
   analyseSound();
-  const want = mood === "heavy" ? "breath" : "voice", other = mood === "heavy" ? "voice" : "breath";
-  // a single frame can sound like noise in the middle of a breath: judge the last quarter second, not one frame,
-  // or the wind (and the guide with it) flickers on and off while you blow
-  mic.match += ((mic.kind === want ? 1 : 0) - mic.match) * (1 - Math.exp(-dt / 0.25));
+  // a single frame can sound like noise in the middle of a word: judge the last quarter second, not one frame,
+  // or the wind (and the guide with it) flickers on and off while you speak
+  mic.match += ((mic.kind === "voice" ? 1 : 0) - mic.match) * (1 - Math.exp(-dt / 0.25));
   const right = mic.match > 0.45 && ritual.mode === "ritual";
   mic.good = right ? mic.good + dt : Math.max(0, mic.good - dt * 2);
-  mic.long = want === "breath" && mic.match > 0.45 ? mic.long + dt : Math.max(0, mic.long - dt * 2);
-  if (mic.long > CONFIG.micBreathMax) { mic.floor = (mic.rms / CONFIG.micGate) * 1.2; mic.good = mic.long = 0; }
-  mic.wrong = mic.kind === other ? mic.wrong + dt : Math.max(0, mic.wrong - dt);
+  mic.wrong = mic.kind === "breath" ? mic.wrong + dt : Math.max(0, mic.wrong - dt);
   // how far above the gate, in decibels: the same breath gives the same strength on a quiet or a loud microphone
   const gate = micGateLevel();
   const level = mic.rms > gate ? clamp((20 * Math.log10(mic.rms / gate)) / CONFIG.micRange, 0, 1) : 0;
-  // the gesture matters more than loudness: a calm, steady breath (or voice) is enough, even on a quiet microphone
-  const target = !right ? 0 : mood === "heavy"
-    ? 6.5 * (0.6 + 0.4 * level) * (0.3 + 0.7 * smooth(0.2, 1.2, mic.good))
-    : 6 * (0.6 + 0.4 * level) * (0.5 + 0.5 * smooth(0.1, 0.5, mic.good));
+  // speaking matters more than loudness: a calm voice is enough, even on a quiet microphone
+  const target = !right ? 0 : 6 * (0.6 + 0.4 * level) * (0.5 + 0.5 * smooth(0.1, 0.5, mic.good));
   micBlow += (target - micBlow) * (1 - Math.exp(-dt * (target > micBlow ? 4 : 2.5)));
-  // a gentle nudge when the other gesture is used: speaking in "heavy", blowing in "light"
+  // a gentle nudge when someone blows instead of reading aloud
   if (mic.wrong > 0.7 && time > mic.hintUntil && ritual.mode === "ritual") {
-    status.textContent = MIC_TEXT[langId][mood].wrong; status.classList.add("msg"); mic.hintUntil = time + 4;
+    status.textContent = MIC_TEXT[langId].light.wrong; status.classList.add("msg"); mic.hintUntil = time + 4;
   }
   // the meter fills gold for the right gesture, grey for any other sound
   const meter = $("meter");
@@ -2692,7 +2674,7 @@ function listen(dt) {
   meter.style.background = right ? "" : "var(--muted)";
   if (micDebug && ++micDebugFrame % 6 === 0) {
     micDebug.textContent = [
-      "mood     " + mood + " (wants " + want + ")",
+      "wants    voice",
       "hears    " + mic.kind,
       "level    " + mic.rms.toFixed(4) + "  quiet " + mic.floor.toFixed(4) + "  gate " + micGateLevel().toFixed(4),
       "pitch    " + mic.pitch.toFixed(2) + "  (voice > " + CONFIG.micVoicePitch + ")",
@@ -2937,9 +2919,9 @@ function step(dt) {
     else if (time > regrowAt && seeds.length < 12) grow();
   }
 
-  // wind sound (silent while the mic listens, or the mic would hear it as a breath)
+  // wind sound
   if (ac && windGain && soundOn) {
-    const level = hissMuted() ? 0 : Math.min(1, blow / 6 + Math.hypot(ptr.vx, ptr.vy) / 2500);
+    const level = Math.min(1, blow / 6 + Math.hypot(ptr.vx, ptr.vy) / 2500);
     windGain.gain.setTargetAtTime(level * 0.22, ac.currentTime, 0.12);
     windFilter.frequency.setTargetAtTime(350 + level * 1300, ac.currentTime, 0.12);
   }
